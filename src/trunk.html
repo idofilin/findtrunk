@@ -1,0 +1,43 @@
+<!--
+Copyright (C) 2024 Ido Filin. 
+
+This HTML code is free software; you can redistribute it
+and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation; either
+version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Find the tree trunk</title>
+  <meta charset="utf-8"/>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=20, user-scalable=yes, minimal-ui"/>
+</head>
+<body role="document" style="background:black; color:white;">
+  <button id="fullscreen-button">Full screen</button>
+  <canvas id="app-canvas" style="height:400px; width:400px;"> </canvas>
+  <label for="dataset-menu">Dataset selector:</label>
+  <select name="dataset-menu" id="dataset-select">
+	<option value="">--Select a dataset--</option>
+  </select>
+  <script type="module" src="./poikilo-core.js"> </script>
+  <script type="module" src="./poikilo.js"> </script>
+  <script type="module" src="./poikilo-texture.js"> </script>
+  <script type="module" src="./poikilo-transforms.js"> </script>
+  <script type="module" src="./poikilo-renderer.js"> </script>
+  <script type="module" src="./poikilo-load.js"> </script>
+  <script type="module" src="./pointcloud.js"> </script>
+  <script type="module" src="./trunk.js"> </script>
+</body>
+</html>
+
