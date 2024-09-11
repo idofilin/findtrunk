@@ -1,5 +1,6 @@
 # findtrunk
 An experimental WebGL program to identify the trunk segment in TLS point clouds of trees.
+See it running at https://sci.filin.fi/tls/findtrunk
 
 Dataset files
 --
