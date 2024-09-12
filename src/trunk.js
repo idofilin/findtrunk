@@ -23,9 +23,6 @@ import { batchLoad, ProgressDisplay } from "./poikilo-load.js"
 import { load as loadCloud, transform as calcTransMat, calcStats, cloudFilenames as cloudList } from "./pointcloud.js"
 
 const canvas = document.getElementById('app-canvas');
-const button = document.getElementById('fullscreen-button');
-button.onclick = ()=>{canvas.requestFullscreen(canvas)};
-
 const context = new Context(canvas, {alpha:true}, [Shader, Program, Texture, Renderer]);
 const gl = context[GLNAME];
 const floatRenderExtension = gl.getExtension("EXT_color_buffer_float");
@@ -33,15 +30,16 @@ const floatRenderExtension = gl.getExtension("EXT_color_buffer_float");
 const twopi = Transform.twopi;
 const sizeof = Transform.sizeof;
 
-let renderer = new context.Renderer({indexBytesize: sizeof.uint32});
-renderer.setDefaultResizer(resizeCanvasCallback);
-const [minSize, maxSize] = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE);
+const renderer = new context.Renderer({indexBytesize: sizeof.uint32});
 
 window.addEventListener("DOMContentLoaded", setupApp, false);
 
 async function setupApp(evt) {
 	window.removeEventListener(evt.type, setupApp, false);
-	let fileSelect = document.getElementById("dataset-select");
+	renderer.setDefaultResizer(resizeCanvasCallback);
+	const button = document.getElementById('fullscreen-button');
+	button.onclick = ()=>{canvas.requestFullscreen(canvas)};
+	const fileSelect = document.getElementById("dataset-select");
 	let progressShow = new ProgressDisplay();
 	document.body.appendChild(progressShow.htmlElement);
 	let shaderPrograms = await loadShaderPrograms(progressShow);
