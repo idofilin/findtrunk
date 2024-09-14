@@ -16,6 +16,8 @@ limitations under the License.
 
 import { GLNAME } from "./poikilo-core.js"
 
+const TypedArray = Uint8Array.prototype.__proto__.constructor;
+
 class Texture { 
 	constructor (source, options) {
 		const textureObj = this,
@@ -24,23 +26,26 @@ class Texture {
 		const tex = gl.createTexture(); 
 		const texopts = context.Texture.options(options, source); 
 		const format = texopts.format,
+			informat = texopts.informat,
 			wrap = texopts.wrap,
 			texTarget = texopts.target,
 			magfilter = texopts.magfilter,
 			minfilter = texopts.minfilter,
 			width = texopts.width,
-			height = texopts.height;
+			height = texopts.height,
+			datumtype = texopts.type;
+
 		gl.bindTexture(texTarget, tex);
 
 		if (typeof source ===  "string" || source instanceof Blob) {
 			let texImg = new Image();
 			texImg.onload = function (e) {
-				e.stopPropagation;
+				e.stopPropagation();
 				e.target.onload = null;
 				const currTex = gl.getParameter(gl.TEXTURE_BINDING_2D);
 				gl.bindTexture(gl.TEXTURE_2D, tex);
 				gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-				gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, e.target);
+				gl.texImage2D(gl.TEXTURE_2D, 0, informat, format, gl.UNSIGNED_BYTE, e.target);
 				initTextureParameters(tex);
 				if (options && options.callback instanceof Function)
 					options.callback.call({tex:tex, source:source}, options);
@@ -51,31 +56,31 @@ class Texture {
 				|| source;
 
 		} else if (source instanceof WebGLFramebuffer) {
-			let fbo = source;
-			let attachment = options && options.attachment || gl.COLOR_ATTACHMENT0;
+			const fbo = source;
+			const attachment = options && options.attachment || gl.COLOR_ATTACHMENT0;
 			gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 			gl.bindTexture(gl.TEXTURE_2D, tex);
-			gl.texImage2D(gl.TEXTURE_2D, 0, format, 
-					width, height, 0, format, gl.UNSIGNED_BYTE, null);
+			gl.texImage2D(gl.TEXTURE_2D, 0, informat, 
+					width, height, 0, format, datumtype, null);
 			initTextureParameters(tex);
 			gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment, gl.TEXTURE_2D, tex, 0);
 
 		} else if (source instanceof ImageData) {
 			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, source);
+			gl.texImage2D(gl.TEXTURE_2D, 0, informat, format, gl.UNSIGNED_BYTE, source);
 			initTextureParameters(tex);
 
-		} else if (texTarget == gl.TEXTURE_2D && source instanceof Uint8Array) {
-			let pixels = source;
-			gl.texImage2D(gl.TEXTURE_2D, 0, format, 
-					width, height, 0, format, gl.UNSIGNED_BYTE, pixels);
+		} else if (texTarget == gl.TEXTURE_2D && source instanceof TypedArray) {
+			const pixels = source;
+			gl.texImage2D(gl.TEXTURE_2D, 0, informat, 
+					width, height, 0, format, datumtype, pixels);
 			initTextureParameters(tex);
 
-		} else if (texTarget == gl.TEXTURE_3D && source instanceof Uint8Array) {
-			let pixels = source;
-			let depth = texopts.depth;
-			gl.texImage3D(gl.TEXTURE_3D, 0, format, 
-					width, height, depth, 0, format, gl.UNSIGNED_BYTE, pixels);
+		} else if (texTarget == gl.TEXTURE_3D && source instanceof TypedArray) {
+			const pixels = source;
+			const depth = texopts.depth;
+			gl.texImage3D(gl.TEXTURE_3D, 0, informat, 
+					width, height, depth, 0, format, datumtype, pixels);
 			initTextureParameters(tex);
 
 		} else if (source instanceof Array 
@@ -128,7 +133,9 @@ Texture.options = function textureOptions (context, options, source) {
 		const gl = context[GLNAME]; 
 		let opts = { 
 			name : options && typeof options.name === "string" && options.name || false,
-			format: options && options.format || gl.RGBA,
+			format: options && options.format || options.informat || gl.RGBA,
+			informat: options && options.informat || options.internalformat || options.format || gl.RGBA,
+			type: options && options.type || gl.UNSIGNED_BYTE,
 			magfilter:options && (options.magfilter || options.filter) || gl.LINEAR, 
 			minfilter:options && (options.minfilter || options.filter) || gl.LINEAR_MIPMAP_LINEAR,
 			filter: options && options.filter || null, 

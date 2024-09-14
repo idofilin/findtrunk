@@ -88,7 +88,7 @@ const zScaler = 7.0;
 let deltaZ = null;
 let transMat = null;
 const fbosize = 128;
-let offscreenFBO = null, offscreenTex = null;
+let offscreenFBO = null, offscreenTex = Array(4);
 let shaders;
 let cleanupIsSet = false;
 function initRendering (cloud, progs) {
@@ -141,35 +141,25 @@ function initRendering (cloud, progs) {
 		let fbo = offscreenFBO = [ gl.createFramebuffer(), gl.createFramebuffer() ];
 		fbo[0].height = fbo[0].width = fbosize;
 		fbo[1].height = fbo[1].width = fbosize;
-		let tex = offscreenTex = [ gl.createTexture(), gl.createTexture(), gl.createTexture(), gl.createTexture() ];
-		gl.activeTexture(gl.TEXTURE0);
-		const attachment = [ gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1 ];
-		const texTarget = gl.TEXTURE_2D;
-		for (let i=0; i<4; i++) {
-			let currFBO = fbo[i%2]; 
-			gl.bindFramebuffer(gl.FRAMEBUFFER, currFBO);
-			gl.bindTexture(gl.TEXTURE_2D,tex[i]);
-			gl.texImage2D(texTarget, 0, gl.RGBA32F, 
-					currFBO.width, currFBO.height, 0, gl.RGBA, gl.FLOAT, null);
-			gl.texParameteri(texTarget, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(texTarget, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(texTarget, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(texTarget, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-			gl.texParameteri(texTarget, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-			gl.framebufferTexture2D(gl.FRAMEBUFFER, attachment[Math.floor(i/2)], gl.TEXTURE_2D, offscreenTex[i], 0);
-		}
+		offscreenTex[0] = new context.Texture(fbo[0],
+			{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT0});
+		offscreenTex[1] = new context.Texture(fbo[1],
+			{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT0});
+		offscreenTex[2] = new context.Texture(fbo[0],
+			{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT1});
+		offscreenTex[3] = new context.Texture(fbo[1],
+			{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT1});
 	}
 
-	gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[0]);
+	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[0][GLNAME]);
 	gl.activeTexture(gl.TEXTURE1);
-	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[1]);
+	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[1][GLNAME]);
 	gl.activeTexture(gl.TEXTURE2);
-	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[2]);
+	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[2][GLNAME]);
 	gl.activeTexture(gl.TEXTURE3);
-	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[3]);
+	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[3][GLNAME]);
 
 	gl.useProgram(shaders.points[GLNAME]);
 	gl.uniform3f(shaders.points.fixedColor, 1.0, 1.0, 1.0 );
@@ -201,8 +191,9 @@ function initRendering (cloud, progs) {
 
 	if (!cleanupIsSet) {
 		console.log("Setup cleanup");
-		context.cleanup.push([ offscreenFBO[0], offscreenFBO[1], 
-			offscreenTex[0] ,offscreenTex[1], offscreenTex[2], offscreenTex[3], ],
+		context.cleanup.push(
+			offscreenFBO, 
+			offscreenTex, 
 			renderer, 
 			shaders,	
 		);
