@@ -58,12 +58,15 @@ class Context extends CoreContext {
 
 		this.maxAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
 		this.cleanup = [];
-		window.addEventListener("beforeunload", this.clean.bind(this), true);
+		window.addEventListener("beforeunload", (evt)=>{context.clean()}, true);
 	} /* constructor */
 
-	clean() {
+	clean(cleanupArray = null) {
+		console.log(cleanupArray);
 		let context = this;
 		let gl = context.gl;
+		if (!cleanupArray)
+			cleanupArray = context.cleanup;
 
 		gl.useProgram(null);
 		gl.bindTexture(gl.TEXTURE_2D,null);
@@ -71,47 +74,66 @@ class Context extends CoreContext {
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
-		for (let cleanupObj of context.cleanup) {
-			if (cleanupObj instanceof Function) 
-				cleanupObj.call(context);
-			else if (cleanupObj instanceof Object) {
-				if (cleanupObj instanceof context.Renderer) {
+		for (let item of cleanupArray) {
+			if (item instanceof Function) {
+				item.call(context);
+				continue;
+			} else if (item instanceof Array) {
+				context.clean(item);
+				continue;
+			} else if (cleanItem(item)) {
+				if (item.hasOwnProperty(GLNAME)) item[GLNAME] = null;
+				continue;
+			} else if (item instanceof Object) {
+				if (item instanceof context.Renderer) {
 					console.log("Canceling renderer frame");
-					cleanupObj.cancelFrameRequest();
+					item.cancelFrameRequest();
 				}
-				for (const prop in cleanupObj) {
-					let focus = cleanupObj[prop]
-					if (focus instanceof context.Program)
-						gl.deleteProgram(focus[GLNAME]);
-					else if (focus instanceof WebGLProgram) {
-						console.log("Cleaning program "+prop);
-						gl.deleteProgram(focus);
-					}
-					else if (focus instanceof context.Shader)
-						gl.deleteShader(focus[GLNAME]);
-					else if (focus instanceof WebGLShader)
-						gl.deleteShader(focus);
-					else if (focus instanceof context.Texture)
-						gl.deleteTexture(focus[GLNAME]);
-					else if (focus instanceof WebGLTexture)
-						gl.deleteTexture(focus);
-					else if (focus instanceof WebGLBuffer) {
-						console.log("Cleaning buffer "+prop);
-						gl.deleteBuffer(focus);
-					} else 
-						continue;
-					delete cleanupObj[prop];
-				}
-				for (const prop in cleanupObj) { 
-					if (cleanupObj[prop] instanceof WebGLFramebuffer) {
-						gl.deleteFramebuffer(cleanupObj[prop]);
-						delete cleanupObj[prop];
-					} else if (cleanupObj[prop] instanceof WebGLRenderbuffer) {
-						gl.deleteRenderbuffer(cleanupObj[prop]);
-						delete cleanupObj[prop];
-					}
+				for (const prop in item) {
+					if (cleanItem(item[prop],prop))
+						item[prop] = null;
 				}
 			}
+		}
+
+		function cleanItem(focus, propname = null) {
+			if (focus instanceof context.Program) {
+				gl.deleteProgram(focus[GLNAME]);
+				return true;
+			} else if (focus instanceof WebGLProgram) {
+				console.log("Cleaning program "+propname);
+				gl.deleteProgram(focus);
+				return true;
+			} else if (focus instanceof context.Shader) {
+				gl.deleteShader(focus[GLNAME]);
+				return true;
+			} else if (focus instanceof WebGLShader) {
+				gl.deleteShader(focus);
+				return true;
+			} else if (focus instanceof context.Texture) {
+				console.log("Cleaning context texture "+propname);
+				gl.deleteTexture(focus[GLNAME]);
+				return true;
+			} else if (focus instanceof WebGLTexture) {
+				console.log("Cleaning WebGL texture "+propname);
+				gl.deleteTexture(focus);
+				return true;
+			} else if (focus instanceof WebGLBuffer) {
+				console.log("Cleaning buffer "+propname);
+				gl.deleteBuffer(focus);
+				return true;
+			} else if (focus instanceof WebGLFramebuffer) {
+				console.log("Cleaning framebuffer "+propname);
+				gl.deleteFramebuffer(focus);
+				return true;
+			} else if (focus instanceof WebGLRenderbuffer) {
+				gl.deleteRenderbuffer(focus);
+				return true;
+			} else {
+				return false;
+			}
+
+			return false;
 		}
 	} /* method clean */
 
