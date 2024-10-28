@@ -15,4 +15,4 @@ Record references https://zenodo.org/records/4557401 and https://zenodo.org/reco
 
 Note on license
 --
-Progam is distributed under GPL3 license, except for the WebGL utility code (files prefixed poikilo) that is ditstributed under Apache License 2.0.
+Progam is distributed under GPL3 license.
