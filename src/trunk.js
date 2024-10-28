@@ -15,12 +15,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { Context, GLNAME, Shader, Program } from "./poikilo.js"
-import { Texture } from "./poikilo-texture.js"
-import * as Transform from "./poikilo-transforms.js"
-import { Renderer } from "./poikilo-renderer.js"
-import { batchLoad, ProgressDisplay } from "./poikilo-load.js"
+import { Context, GLNAME, Shader, Program } from "./kangas.js/context.js"
+import { Texture } from "./kangas.js/texture.js"
+import * as Transform from "./kangas.js/transforms.js"
+import { Renderer } from "./kangas.js/renderer.js"
+import { batchLoad, ProgressDisplay } from "./kangas.js/load.js"
 import { load as loadCloud, transform as calcTransMat, calcStats, cloudFilenames as cloudList } from "./pointcloud.js"
+
 
 const canvas = document.getElementById('app-canvas');
 const context = new Context(canvas, {alpha:true}, [Shader, Program, Texture, Renderer]);
