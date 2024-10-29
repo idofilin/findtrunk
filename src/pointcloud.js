@@ -55,13 +55,23 @@ function transform (delta, scaler, scalerz = scaler) {
 function calcStats(data, stride = 1) {
 	let datasize = data.length;
 	let datalen = Math.floor(datasize/stride);
-	let Sums = data.reduce( (a,x,i) =>{ a[i%stride]+=x; return a }, [0,0,0] ) 
-	let Maxes = data.reduce( (a,x,i) =>{ a[i%stride]=Math.max(x,a[i%stride]); return a }, [-Infinity,-Infinity,-Infinity] ) 
-	let Mins = data.reduce( (a,x,i) =>{ a[i%stride]=Math.min(x,a[i%stride]); return a }, [+Infinity,+Infinity,+Infinity] ) 
+	let Sums = data.reduce( 
+		(a,x,i) =>{a[i%stride]+=x; return a}, 
+		Array(stride).fill(0) ) 
+	let Maxes = data.reduce( 
+		(a,x,i) =>{a[i%stride]=Math.max(x,a[i%stride]); return a}, 
+		Array(stride).fill(-Infinity) ) 
+	let Mins = data.reduce( 
+		(a,x,i) =>{a[i%stride]=Math.min(x,a[i%stride]); return a}, 
+		Array(stride).fill(+Infinity) ) 
 	let Means = Sums.map((x)=>x/datalen);
+	let VARs = data.reduce( 
+		(a,x,i) =>{a[i%stride]+=(x-Means[i%stride])**2/(datalen - 1); return a},
+		Array(stride).fill(0) ); 
 	return { 
 		size: datalen, datasize: datasize, stride: stride, 
-		sum: Sums, max: Maxes, min: Mins, mean: Means,
+		sum: Sums, max: Maxes, min: Mins, mean: Means, 
+		"var":VARs, sd: VARs.map(Math.sqrt),
 	};
 }
 

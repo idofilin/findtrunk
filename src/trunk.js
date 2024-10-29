@@ -416,9 +416,10 @@ function geometryScene(timestamp) {
 	const clusterPixels = pixels.filter((x,i,a)=>a[i-i%4+3]>0);
 	const centerX = 2*clusterPixels[1] - 1;
 	const centerY = 2*clusterPixels[2] - 1;
+	const distances = clusterPixels.filter((x,i,a)=>i%4===0);
 	//console.log(`[ ${centerX}, ${centerY} ]`);
 	trunkData.push(Object.assign(
-		{centerCorrect:[centerX, centerY]},
+		{centerCorrect: [centerX, centerY], distStats: calcStats(distances) },
 		cloudCrossSections[crossSectIndex]));
 
 	crossSectIndex++;
@@ -439,6 +440,7 @@ function geometryScene(timestamp) {
 function drawTrunk() {
 	let index = 0;
 	let trunkCoords = [];
+	console.log(trunkData);
 	while (index < trunkData.length) {
 		const cSect = trunkData[index];
 		let centerX = cloudMids[0] 
