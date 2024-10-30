@@ -289,7 +289,7 @@ function calcInitialClusters () {
 				return acc
 			} ,[+Infinity, -Infinity]);
 		let yMinMax = clusterMap.reduce( (acc,x,i)=>{
-				if (x>0) {
+				if (x === cid) {
 					const val=Math.floor(i/w); 
 					acc[0]=Math.min(acc[0],val); 
 					acc[1]=Math.max(acc[1],val)
@@ -437,9 +437,16 @@ function geometryScene(timestamp) {
 	}
 }
 
+const numCircleCoords=24;
+const circleCoords = Float32Array.from({length: numCircleCoords*3}, (v,i)=>{
+		let angle = (2*Math.PI/numCircleCoords)*Math.floor(i/3);
+		return (i%3 == 0) && Math.cos(angle) || (i%3 == 1) && Math.sin(angle) || 0;
+	}
+); 
 function drawTrunk() {
-	let index = 0;
-	let trunkCoords = [];
+	let index = 0, 
+		trunkCoords = [],
+		ringsCoords = [];
 	console.log(trunkData);
 	while (index < trunkData.length) {
 		const cSect = trunkData[index];
@@ -453,6 +460,11 @@ function drawTrunk() {
 			trunkCoords.push(centerX);
 			trunkCoords.push(centerY);
 			trunkCoords.push(cSect.deltaz);
+			let radius = 2*cSect.distStats.mean[0]/cSect.baseScaler;
+			ringsCoords.push(...(
+				circleCoords.map( (x,i)=>
+					(i%3===0) && (radius*x+centerX) || (i%3===1) && (radius*x+centerY) || cSect.deltaz )
+			));
 		}
 		index++;
 	}
@@ -461,11 +473,22 @@ function drawTrunk() {
 		attributes : [{posCoord:3}],
 		bytesize : sizeof.float32,
 	});
-	renderer.addVertexData("", {
+	renderer.addVertexData("trunkindices", {
 		buffertype:"index",
 		data: Uint32Array.from({length: trunkCoords.length/3}, (v,i)=>i),
 		bytesize: sizeof.uint32,
 	});
+	renderer.addVertexData("rings", {
+		data: Float32Array.from(ringsCoords),
+		attributes : [{posCoord:3}],
+		bytesize : sizeof.float32,
+	});
+	renderer.addVertexData("ringsindices", {
+		buffertype:"index",
+		data: Uint32Array.from({length: ringsCoords.length/3}, (v,i)=>i),
+		bytesize: sizeof.uint32,
+	});
+
 	renderer.updateBuffers();
 	const offsets = renderer.vertexData;
 
@@ -482,11 +505,11 @@ function drawTrunk() {
 
 	let program=shaders.points;
 	gl.useProgram(program[GLNAME]);
-	gl.uniform1f(program.pointSize, 3.0);
 	gl.uniform1f(program.fixedcolorFactor, 1.0);
-	gl.uniform3f(program.fixedColor, 0.0, 1.0, 0.0 );
 
 	transMat = calcTransMat( [ cloudMids[0], cloudMids[1], cloudMids[2] ], initialScaler*0.33);
+
+	console.log(ringsCoords);
 
 	renderer.animate(trunkScene);
 	return;
@@ -511,10 +534,19 @@ function trunkScene(timestamp) {
 	program = shaders.points;
 	gl.useProgram(program[GLNAME]);
 	gl.uniformMatrix4fv(program.MVPmatrix, false, mvpMat);
+	gl.uniform1f(program.pointSize, 3.0);
+	gl.uniform3f(program.fixedColor, 0.0, 1.0, 0.0 );
 	bindAttributePointer(program.posCoord, 
 		offsets.trunk, offsets.trunk.posCoord);
 	gl.drawElements(gl.POINTS, offsets.trunkindices.data.length, gl.UNSIGNED_INT, offsets.trunkindices.byteoffset);
 	gl.drawElements(gl.LINE_STRIP, offsets.trunkindices.data.length, gl.UNSIGNED_INT, offsets.trunkindices.byteoffset);
+
+	gl.uniform1f(program.pointSize, 1.0);
+	gl.uniform3f(program.fixedColor, 0.0, 0.5, 1.0 );
+	bindAttributePointer(program.posCoord, 
+		offsets.rings, offsets.rings.posCoord);
+	//gl.drawElements(gl.POINTS, offsets.ringsindices.data.length, gl.UNSIGNED_INT, offsets.ringsindices.byteoffset);
+	gl.drawElements(gl.LINE_STRIP, offsets.ringsindices.data.length, gl.UNSIGNED_INT, offsets.ringsindices.byteoffset);
 
 	renderer.animate(trunkScene);
 }
