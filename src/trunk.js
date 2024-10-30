@@ -461,7 +461,7 @@ function drawTrunk() {
 		attributes : [{posCoord:3}],
 		bytesize : sizeof.float32,
 	});
-	renderer.addVertexData("trunkindices", {
+	renderer.addVertexData("", {
 		buffertype:"index",
 		data: Uint32Array.from({length: trunkCoords.length/3}, (v,i)=>i),
 		bytesize: sizeof.uint32,
