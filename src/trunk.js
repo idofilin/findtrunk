@@ -447,7 +447,6 @@ function drawTrunk() {
 	let index = 0, 
 		trunkCoords = [],
 		ringsCoords = [];
-	console.log(trunkData);
 	while (index < trunkData.length) {
 		const cSect = trunkData[index];
 		let centerX = cloudMids[0] 
@@ -506,10 +505,9 @@ function drawTrunk() {
 	let program=shaders.points;
 	gl.useProgram(program[GLNAME]);
 	gl.uniform1f(program.fixedcolorFactor, 1.0);
+	gl.uniform1f(program.pointSize, 3.0);
 
 	transMat = calcTransMat( [ cloudMids[0], cloudMids[1], cloudMids[2] ], initialScaler*0.33);
-
-	console.log(ringsCoords);
 
 	renderer.animate(trunkScene);
 	return;
@@ -534,18 +532,15 @@ function trunkScene(timestamp) {
 	program = shaders.points;
 	gl.useProgram(program[GLNAME]);
 	gl.uniformMatrix4fv(program.MVPmatrix, false, mvpMat);
-	gl.uniform1f(program.pointSize, 3.0);
 	gl.uniform3f(program.fixedColor, 0.0, 1.0, 0.0 );
 	bindAttributePointer(program.posCoord, 
 		offsets.trunk, offsets.trunk.posCoord);
 	gl.drawElements(gl.POINTS, offsets.trunkindices.data.length, gl.UNSIGNED_INT, offsets.trunkindices.byteoffset);
 	gl.drawElements(gl.LINE_STRIP, offsets.trunkindices.data.length, gl.UNSIGNED_INT, offsets.trunkindices.byteoffset);
 
-	gl.uniform1f(program.pointSize, 1.0);
-	gl.uniform3f(program.fixedColor, 0.0, 0.5, 1.0 );
+	gl.uniform3f(program.fixedColor, 1.0, 1.0, 0.0 );
 	bindAttributePointer(program.posCoord, 
 		offsets.rings, offsets.rings.posCoord);
-	//gl.drawElements(gl.POINTS, offsets.ringsindices.data.length, gl.UNSIGNED_INT, offsets.ringsindices.byteoffset);
 	gl.drawElements(gl.LINE_STRIP, offsets.ringsindices.data.length, gl.UNSIGNED_INT, offsets.ringsindices.byteoffset);
 
 	renderer.animate(trunkScene);
