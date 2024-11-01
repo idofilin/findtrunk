@@ -19,8 +19,7 @@ precision highp float;
 
 in vec2 textureCoord;
 
-layout(location = 0) out vec4 centroidData;
-layout(location = 1) out vec4 residuals;
+vec4 centroidData;
 
 uniform sampler2D occupancy;
 uniform float qstep;
@@ -46,6 +45,5 @@ void main(void)
 	float dist = distance(cntr,textureCoord);
 	vec2 radiusVector = normalize(textureCoord - cntr);
 	centroidData = vec4( dist, cntr.xy, radiusVector.y );
-	residuals = vec4(textureCoord, radiusVector);
 }
 

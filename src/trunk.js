@@ -381,14 +381,7 @@ function geometryScene(timestamp) {
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	bindAttributePointer(prog.coord, 
 		offsets.billboard, offsets.billboard.coord);
-	gl.drawBuffers([
-		gl.COLOR_ATTACHMENT0,
-		gl.COLOR_ATTACHMENT1, 
-	  ]);
 	gl.drawElements(gl.TRIANGLES, offsets.billboardindices.data.length, gl.UNSIGNED_INT, offsets.billboardindices.byteoffset);
-	gl.drawBuffers([
-		gl.COLOR_ATTACHMENT0,
-	  ]);
 
     const speedup = 2;
 	if (crossSectIndex % speedup ===0) {
@@ -409,10 +402,8 @@ function geometryScene(timestamp) {
 
 	const w = fbo.width, h = fbo.height;
 	gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-	const pixels = new Float32Array(fbo.width * fbo.height * 4)
-	//gl.readBuffer(gl.COLOR_ATTACHMENT1);
-	gl.readPixels(0, 0, fbo.width, fbo.height, gl.RGBA, gl.FLOAT, pixels);
-	//gl.readBuffer(gl.COLOR_ATTACHMENT0);
+	const pixels = new Float32Array(w * h * 4)
+	gl.readPixels(0, 0, w, h, gl.RGBA, gl.FLOAT, pixels);
 	const clusterPixels = pixels.filter((x,i,a)=>a[i-i%4+3]>0);
 	const centerX = 2*clusterPixels[1] - 1;
 	const centerY = 2*clusterPixels[2] - 1;
