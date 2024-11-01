@@ -19,7 +19,7 @@ precision highp float;
 
 in vec2 textureCoord;
 
-vec4 centroidData;
+out vec4 centroidData;
 
 uniform sampler2D occupancy;
 uniform float qstep;
