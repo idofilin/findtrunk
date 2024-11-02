@@ -44,6 +44,6 @@ void main(void)
 	vec2 cntr = sum / float(count);
 	float dist = distance(cntr,textureCoord);
 	vec2 radiusVector = normalize(textureCoord - cntr);
-	centroidData = vec4( dist, cntr.xy, radiusVector.y );
+	centroidData = vec4( 2.0*dist, 2.0*cntr.xy - 1.0, radiusVector.y );
 }
 

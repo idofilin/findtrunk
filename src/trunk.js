@@ -405,8 +405,7 @@ function geometryScene(timestamp) {
 	const pixels = new Float32Array(w * h * 4)
 	gl.readPixels(0, 0, w, h, gl.RGBA, gl.FLOAT, pixels);
 	const clusterPixels = pixels.filter((x,i,a)=>a[i-i%4+3]>0);
-	const centerX = 2*clusterPixels[1] - 1;
-	const centerY = 2*clusterPixels[2] - 1;
+	const [ centerX, centerY ] = [ clusterPixels[1], clusterPixels[2] ];
 	const distances = clusterPixels.filter((x,i,a)=>i%4===0);
 	//console.log(`[ ${centerX}, ${centerY} ]`);
 	trunkData.push(Object.assign(
@@ -450,7 +449,7 @@ function drawTrunk() {
 			trunkCoords.push(centerX);
 			trunkCoords.push(centerY);
 			trunkCoords.push(cSect.deltaz);
-			let radius = 2*cSect.distStats.mean[0]/cSect.baseScaler;
+			let radius = cSect.distStats.mean[0]/cSect.baseScaler;
 			ringsCoords.push(...(
 				circleCoords.map( (x,i)=>
 					(i%3===0) && (radius*x+centerX) || (i%3===1) && (radius*x+centerY) || cSect.deltaz )
