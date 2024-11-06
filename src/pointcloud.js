@@ -15,31 +15,27 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import { ProgressDisplay } from "./kangas.js/load.js"
+
 async function load (filename, progress) {
-	let elm=null;
-	if (progress) elm = progress.add("Loading point cloud");
+	let progdisp = progress instanceof ProgressDisplay && progress || undefined ;
+	let elm = progdisp?.add("Loading point cloud");
 
 	let response = await fetch(filename)
-
-	if (progress) progress.update(elm, "Loading point cloud", 0.5);
+	progdisp?.update(elm, "Loading point cloud", 0.5);
 
 	let body = await response.text();
-
-	if (progress) progress.update(elm, "Loading point cloud", 0.6);
+	progdisp?.update(elm, "Loading point cloud", 0.6);
 
 	let numberPoints = body.trim().split(/\s+/).map(Number);
-
-	if (progress) progress.update(elm, "Loading point cloud", 0.7);
+	progdisp?.update(elm, "Loading point cloud", 0.7);
 
 	let points = Float32Array.from(numberPoints);
-
-	if (progress) progress.update(elm, "Loading point cloud", 0.8);
+	progdisp?.update(elm, "Loading point cloud", 0.8);
 
 	let cloudStats = calcStats(numberPoints,3);
-	
-	if (progress) progress.update(elm, "Loading point cloud", 0.9);
-
-	if (progress) progress.update(elm, "Loading point cloud", 1.0);
+	progdisp?.update(elm, "Loading point cloud", 0.9);
+	progdisp?.update(elm, "Loading point cloud", 1.0);
 
 	return Object.assign( { data:points }, cloudStats );
 }
