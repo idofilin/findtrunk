@@ -4,7 +4,7 @@ See it running at https://sci.filin.fi/tls/findtrunk
 
 User interaction
 ---
-- Selecting a dataset from a drop-down list, to start running the analysis and animation. 
+- Selecting a dataset from the drop-down list, to start running the analysis and animation. 
 - Zooming in/out and moving up/down the tree trunk, by dragging the mouse up/down or left/right on a desktop, or by left/right and up/down touch movements on touchscreen devices.
 
 Dependencies
