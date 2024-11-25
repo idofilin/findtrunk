@@ -25,11 +25,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 </head>
 <body role="document" style="background:black; color:white;">
   <button id="fullscreen-button">Full screen</button>
-  <canvas id="app-canvas" style="height:400px; width:400px;"> </canvas>
+  <canvas id="app-canvas" 
+	style="height:400px; width:400px; touch-action:none;">
+  </canvas>
   <label for="dataset-menu">Dataset selector:</label>
   <select name="dataset-menu" id="dataset-select">
 	<option value="">--Select a dataset--</option>
-  </select>
+</select>
+<div id="instructions" style="display:none; color:white; border:solid 2px yellow;">
+  <ul><strong>Instructions:</strong>	  
+	<li>Drag/Pan up or down, to zoom in or out, respectively.</li>
+	<li>Drag/Pan left or right, to move down or up the tree trunk, respectively.</li>
+	<li>Press the "Reset scene" button to return to initial zoom and center position.</li>
+  </ul>
+  <button id="reset-scene">Reset scene</button>
+</div>
   <script type="module" src="./trunk.js"> </script>
 </body>
 </html>

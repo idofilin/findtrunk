@@ -23,10 +23,12 @@ import { batchLoad, ProgressDisplay } from "./kangas.js/load.js"
 import { load as loadCloud, transform as calcTransMat, calcStats, cloudFilenames as cloudList } from "./pointcloud.js"
 
 
-const canvas = document.getElementById('app-canvas');
+const canvas = document.querySelector('#app-canvas');
 const context = new Context(canvas, {alpha:true}, [Shader, Program, Texture, Renderer]);
 const gl = context[GLNAME];
 const floatRenderExtension = gl.getExtension("EXT_color_buffer_float");
+
+const instructions = document.querySelector('#instructions');
 
 const twopi = Transform.twopi;
 const sizeof = Transform.sizeof;
@@ -38,9 +40,11 @@ window.addEventListener("DOMContentLoaded", setupApp, false);
 async function setupApp(evt) {
 	window.removeEventListener(evt.type, setupApp, false);
 	renderer.setDefaultResizer(resizeCanvasCallback);
-	const button = document.getElementById('fullscreen-button');
+	let button = document.querySelector('#fullscreen-button');
 	button.onclick = ()=>{canvas.requestFullscreen(canvas)};
-	const fileSelect = document.getElementById("dataset-select");
+	button = document.querySelector('#reset-scene');
+	button.onclick = ()=>{resetTrunkSceneMat()};
+	const fileSelect = document.querySelector("#dataset-select");
 	let progressShow = new ProgressDisplay();
 	document.body.appendChild(progressShow.htmlElement);
 	let shaderPrograms = await loadShaderPrograms(progressShow);
@@ -56,6 +60,13 @@ async function setupApp(evt) {
 		let cloudname = "https://sci.filin.fi/tls/"+fileSelect.value;
 		if (cloudname) {
 			renderer.cancelFrameRequest();
+			instructions.style.display="none";
+			canvas.removeEventListener("pointerdown", touchStartHandler, false);
+			canvas.removeEventListener("pointermove", touchMoveHandler, false);
+			canvas.removeEventListener("pointerup", touchEndHandler, false);
+			canvas.removeEventListener("pointerout", touchEndHandler, false);
+			canvas.removeEventListener("pointerleave", touchEndHandler, false);
+			canvas.removeEventListener("pointercancel", touchEndHandler, false);
 			let cloudData = await loadCloud(cloudname, progressShow);
 			initRendering(cloudData, shaderPrograms);
 		}
@@ -407,7 +418,6 @@ function geometryScene(timestamp) {
 	const clusterPixels = pixels.filter((x,i,a)=>a[i-i%4+3]>0);
 	const [ centerX, centerY ] = [ clusterPixels[1], clusterPixels[2] ];
 	const distances = clusterPixels.filter((x,i,a)=>i%4===0);
-	//console.log(`[ ${centerX}, ${centerY} ]`);
 	trunkData.push(Object.assign(
 		{centerCorrect: [centerX, centerY], distStats: calcStats(distances) },
 		cloudCrossSections[crossSectIndex]));
@@ -433,6 +443,8 @@ const circleCoords = Float32Array.from({length: numCircleCoords*3}, (v,i)=>{
 		return (i%3 == 0) && Math.cos(angle) || (i%3 == 1) && Math.sin(angle) || 0;
 	}
 ); 
+
+let trunkSceneZoomFactor, trunkSceneOffset;
 function drawTrunk() {
 	let index = 0, 
 		trunkCoords = [],
@@ -497,9 +509,13 @@ function drawTrunk() {
 	gl.uniform1f(program.fixedcolorFactor, 1.0);
 	gl.uniform1f(program.pointSize, 3.0);
 
-	transMat = calcTransMat( [ cloudMids[0], cloudMids[1], cloudMids[2] ], initialScaler*0.33);
+	resetTrunkSceneMat();
 
 	renderer.animate(trunkScene);
+
+	canvas.addEventListener("pointerdown",touchStartHandler, false);
+	instructions.style.display="block";
+	
 	return;
 }
 
@@ -546,3 +562,58 @@ function bindAttributePointer(attribHandle, buffer, bufferHandle) {
 		buffer.bytestride, 
 		bufferHandle.byteoffset);
 }
+
+let activeTouches = new Set();
+let starttouchx=null, starttouchy = null;
+function touchStartHandler (evt) {
+	if (activeTouches.size == 0) {
+		canvas.addEventListener("pointermove", touchMoveHandler, false);
+		canvas.addEventListener("pointerup", touchEndHandler, false);
+		canvas.addEventListener("pointerout", touchEndHandler, false);
+		canvas.addEventListener("pointerleave", touchEndHandler, false);
+		canvas.addEventListener("pointercancel", touchEndHandler, false);
+	}
+	activeTouches.add(evt.pointerId);
+	if (evt.isPrimary) {
+		starttouchx = evt.x; 
+		starttouchy = evt.y;
+	}
+}
+
+function touchEndHandler (evt) {
+	activeTouches.delete(evt.pointerId);
+	if (activeTouches.size == 0) {
+		canvas.removeEventListener("pointermove", touchMoveHandler, false);
+		canvas.removeEventListener("pointerup", touchEndHandler, false);
+		canvas.removeEventListener("pointerout", touchEndHandler, false);
+		canvas.removeEventListener("pointerleave", touchEndHandler, false);
+		canvas.removeEventListener("pointercancel", touchEndHandler, false);
+	}
+	if (evt.isPrimary) {
+		trunkSceneZoomFactor *= Math.exp(-(evt.y-starttouchy)/canvas.clientHeight)
+		trunkSceneOffset += (evt.x-starttouchx)/canvas.clientWidth * 0.1*(cloudMaxes[2]-cloudMins[2]), 
+		calcTrunkSceneMat(trunkSceneOffset, trunkSceneZoomFactor);
+	}
+}
+
+function touchMoveHandler (evt) {
+	activeTouches.add(evt.pointerId);
+
+	if (evt.isPrimary) {
+		calcTrunkSceneMat(
+			trunkSceneOffset + (evt.x-starttouchx)/canvas.clientWidth * 0.1*(cloudMaxes[2]-cloudMins[2]), 
+			trunkSceneZoomFactor * Math.exp(-(evt.y-starttouchy)/canvas.clientHeight)
+		);
+	}
+}
+
+function calcTrunkSceneMat (deltaz, zoomfactor) {
+	transMat = calcTransMat( [ cloudMids[0], cloudMids[1], cloudMids[2]+deltaz ], initialScaler*zoomfactor);
+}
+
+function resetTrunkSceneMat () {
+	trunkSceneOffset = 0.0;
+	trunkSceneZoomFactor = 0.33;
+	calcTrunkSceneMat(trunkSceneOffset, trunkSceneZoomFactor);
+}
+
