@@ -41,7 +41,7 @@ async function setupApp(evt) {
 	window.removeEventListener(evt.type, setupApp, false);
 	renderer.setDefaultResizer(resizeCanvasCallback);
 	let button = document.querySelector('#fullscreen-button');
-	button.onclick = ()=>{canvas.requestFullscreen(canvas)};
+	button.onclick = () => { canvas.requestFullscreen() };
 	button = document.querySelector('#reset-scene');
 	button.onclick = ()=>{resetTrunkSceneMat()};
 	const fileSelect = document.querySelector("#dataset-select");
@@ -196,7 +196,7 @@ function initRendering (cloud, progs) {
 	gl.disable(gl.BLEND);
 	gl.clearColor(-1.0, -2.0, -3.0, -4.0);
 	gl.clearDepth(1.0);
-	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 	gl.flush();
 
 	renderer.animate(clusteringScene);
@@ -256,7 +256,7 @@ function clusteringScene(timestamp) {
 	gl.useProgram(shaders.bill[GLNAME]);
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 	gl.viewport (0.0, 0.0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-	gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 	gl.uniform1i(prog.densityTex, fboIndex);
 	gl.drawElements(gl.TRIANGLES, offsets.billboardindices.data.length, gl.UNSIGNED_INT, offsets.billboardindices.byteoffset);
 	
@@ -398,7 +398,7 @@ function geometryScene(timestamp) {
 	if (crossSectIndex % speedup ===0) {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport (0.0, 0.0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-		gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 		bindprog(shaders.bill);
 		gl.uniform1i(prog.densityTex, 0);
 		gl.drawElements(gl.TRIANGLES, offsets.billboardindices.data.length, gl.UNSIGNED_INT, offsets.billboardindices.byteoffset);
@@ -530,7 +530,7 @@ function trunkScene(timestamp) {
 	gl.uniformMatrix4fv(program.MVPmatrix, false, mvpMat);
 
 	const offsets = renderer.vertexData;
-	gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 	bindAttributePointer(program.posCoord, 
 		offsets.cloud, offsets.cloud.posCoord);
 	gl.drawElements(gl.POINTS, cloudSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
