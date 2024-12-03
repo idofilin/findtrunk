@@ -24,7 +24,10 @@ import { load as loadCloud, transform as calcTransMat, calcStats, cloudFilenames
 
 
 const canvas = document.querySelector('#app-canvas');
-const context = new Context(canvas, {alpha:true}, [Shader, Program, Texture, Renderer]);
+const context = new Context(canvas, {
+		alpha:true, 
+		onContextLost:(evt)=>document.body.append("WebGL context was lost!"),
+	}, [Shader, Program, Texture, Renderer]);
 const gl = context[GLNAME];
 const floatRenderExtension = gl.getExtension("EXT_color_buffer_float");
 
@@ -34,6 +37,8 @@ const twopi = Transform.twopi;
 const sizeof = Transform.sizeof;
 
 const renderer = new context.Renderer({indexBytesize: sizeof.uint32});
+
+const strideSpeedup = 8;
 
 window.addEventListener("DOMContentLoaded", setupApp, false);
 
@@ -257,8 +262,8 @@ function clusteringScene(timestamp) {
 	gl.uniform1f(prog.pointSize, 1.0);
 	gl.uniform1f(prog.fixedcolorFactor, 1.0);
 	bindAttributePointer(prog.posCoord, 
-		offsets.cloud, offsets.cloud.posCoord);
-	gl.drawElements(gl.POINTS, cloudSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+		offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
+	gl.drawElements(gl.POINTS, cloudSize/strideSpeedup, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
 	if (iterCount < fbosize) 
 		renderer.animate(clusteringScene);
 	else if (!geometryStage) {
@@ -270,12 +275,13 @@ function clusteringScene(timestamp) {
 let cloudCrossSections = [];
 let geometryStage = false;
 let clusterCounter = 0;
+const pixels = new Float32Array(fbosize*fbosize*4);
 
 function calcInitialClusters () {
 	const fbo = offscreenFBO[fboIndex];
 	const w = fbo.width, h = fbo.height;
+	gl.flush();
 	gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-	const pixels = new Float32Array(fbo.width * fbo.height * 4)
 	gl.readPixels(0, 0, fbo.width, fbo.height, gl.RGBA, gl.FLOAT, pixels);
 	if (cloudCrossSections.length === 0)
 		clusterCounter = 0;
@@ -367,8 +373,8 @@ function geometryScene(timestamp) {
 	gl.uniform1f(prog.fixedcolorFactor, 0.0);
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	bindAttributePointer(prog.posCoord, 
-		offsets.cloud, offsets.cloud.posCoord);
-	gl.drawElements(gl.POINTS, cloudSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+		offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
+	gl.drawElements(gl.POINTS, cloudSize/strideSpeedup, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
 
 	bindfbo(1);
 	bindprog(shaders.cluster);
@@ -386,7 +392,7 @@ function geometryScene(timestamp) {
 		offsets.billboard, offsets.billboard.coord);
 	gl.drawElements(gl.TRIANGLES, offsets.billboardindices.data.length, gl.UNSIGNED_INT, offsets.billboardindices.byteoffset);
 
-    const speedup = 1;
+    const speedup = 2;
 	if (crossSectIndex % speedup ===0) {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport (0.0, 0.0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -399,14 +405,13 @@ function geometryScene(timestamp) {
 		gl.uniform1f(prog.pointSize, 2.0);
 		gl.uniform1f(prog.fixedcolorFactor, 1.0);
 		bindAttributePointer(prog.posCoord, 
-			offsets.cloud, offsets.cloud.posCoord);
-		gl.drawElements(gl.POINTS, cloudSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+			offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
+		gl.drawElements(gl.POINTS, cloudSize/strideSpeedup, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
 	}
 
-	const w = fbo.width, h = fbo.height;
+	gl.flush();
 	gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-	const pixels = new Float32Array(w * h * 4)
-	gl.readPixels(0, 0, w, h, gl.RGBA, gl.FLOAT, pixels);
+	gl.readPixels(0, 0, fbo.width, fbo.height, gl.RGBA, gl.FLOAT, pixels);
 	const clusterPixels = pixels.filter((x,i,a)=>a[i-i%4+3]>0);
 	const [ centerX, centerY ] = [ clusterPixels[1], clusterPixels[2] ];
 	const distances = clusterPixels.filter((x,i,a)=>i%4===0);
@@ -524,8 +529,8 @@ function trunkScene(timestamp) {
 	const offsets = renderer.vertexData;
 	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 	bindAttributePointer(program.posCoord, 
-		offsets.cloud, offsets.cloud.posCoord);
-	gl.drawElements(gl.POINTS, cloudSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+		offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
+	gl.drawElements(gl.POINTS, cloudSize/strideSpeedup, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
 
 	program = shaders.points;
 	gl.useProgram(program[GLNAME]);
@@ -548,10 +553,10 @@ function resizeCanvasCallback (e, projection) {
 	//console.log("Resize event placeholder handler.");
 }
 
-function bindAttributePointer(attribHandle, buffer, bufferHandle) {
+function bindAttributePointer(attribHandle, buffer, bufferHandle, stride=1) {
 	gl.vertexAttribPointer(attribHandle, 
 		bufferHandle.size, gl.FLOAT, false, 
-		buffer.bytestride, 
+		stride * buffer.bytestride, 
 		bufferHandle.byteoffset);
 }
 
