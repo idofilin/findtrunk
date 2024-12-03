@@ -100,7 +100,7 @@ const zScaler = 7.0;
 let deltaZ = null;
 let transMat = null;
 const fbosize = 128;
-let offscreenFBO = null, offscreenTex = Array(4);
+let offscreenFBO = null, offscreenTex = Array(2);
 let shaders;
 let cleanupIsSet = false;
 function initRendering (cloud, progs) {
@@ -154,13 +154,9 @@ function initRendering (cloud, progs) {
 		fbo[0].height = fbo[0].width = fbosize;
 		fbo[1].height = fbo[1].width = fbosize;
 		offscreenTex[0] = new context.Texture(fbo[0],
-			{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT0});
+				{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT0});
 		offscreenTex[1] = new context.Texture(fbo[1],
 			{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT0});
-		offscreenTex[2] = new context.Texture(fbo[0],
-			{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT1});
-		offscreenTex[3] = new context.Texture(fbo[1],
-			{filter: gl.NEAREST, wrap: gl.CLAMP_TO_EDGE, format:gl.RGBA, internalformat: gl.RGBA32F, type: gl.FLOAT, attachment: gl.COLOR_ATTACHMENT1});
 	}
 
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -168,10 +164,6 @@ function initRendering (cloud, progs) {
 	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[0][GLNAME]);
 	gl.activeTexture(gl.TEXTURE1);
 	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[1][GLNAME]);
-	gl.activeTexture(gl.TEXTURE2);
-	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[2][GLNAME]);
-	gl.activeTexture(gl.TEXTURE3);
-	gl.bindTexture(gl.TEXTURE_2D, offscreenTex[3][GLNAME]);
 
 	gl.useProgram(shaders.points[GLNAME]);
 	gl.uniform3f(shaders.points.fixedColor, 1.0, 1.0, 1.0 );
@@ -394,7 +386,7 @@ function geometryScene(timestamp) {
 		offsets.billboard, offsets.billboard.coord);
 	gl.drawElements(gl.TRIANGLES, offsets.billboardindices.data.length, gl.UNSIGNED_INT, offsets.billboardindices.byteoffset);
 
-    const speedup = 2;
+    const speedup = 1;
 	if (crossSectIndex % speedup ===0) {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport (0.0, 0.0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -566,6 +558,8 @@ function bindAttributePointer(attribHandle, buffer, bufferHandle) {
 let activeTouches = new Set();
 let starttouchx=null, starttouchy = null;
 function touchStartHandler (evt) {
+	evt.stopPropagation();
+	evt.preventDefault();
 	if (activeTouches.size == 0) {
 		canvas.addEventListener("pointermove", touchMoveHandler, false);
 		canvas.addEventListener("pointerup", touchEndHandler, false);
@@ -582,6 +576,8 @@ function touchStartHandler (evt) {
 
 function touchEndHandler (evt) {
 	activeTouches.delete(evt.pointerId);
+	evt.stopPropagation();
+	evt.preventDefault();
 	if (activeTouches.size == 0) {
 		canvas.removeEventListener("pointermove", touchMoveHandler, false);
 		canvas.removeEventListener("pointerup", touchEndHandler, false);
@@ -598,7 +594,8 @@ function touchEndHandler (evt) {
 
 function touchMoveHandler (evt) {
 	activeTouches.add(evt.pointerId);
-
+	evt.stopPropagation();
+	evt.preventDefault();
 	if (evt.isPrimary) {
 		calcTrunkSceneMat(
 			trunkSceneOffset + (evt.x-starttouchx)/canvas.clientWidth * 0.1*(cloudMaxes[2]-cloudMins[2]), 
