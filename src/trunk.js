@@ -47,7 +47,7 @@ const sizeof = Transform.sizeof;
 
 const renderer = new context.Renderer({indexBytesize: sizeof.uint32});
 
-const strideSpeedup = 8;
+const strideSpeedup = 10;
 
 window.addEventListener("DOMContentLoaded", setupApp, false);
 
