@@ -26,7 +26,16 @@ import { load as loadCloud, transform as calcTransMat, calcStats, cloudFilenames
 const canvas = document.querySelector('#app-canvas');
 const context = new Context(canvas, {
 		alpha:true, 
-		onContextLost:(evt)=>document.body.append("WebGL context was lost!"),
+			onContextLost:(evt)=>{
+				const elm = document.createElement("strong");
+				elm.style.color = "yellow";
+				elm.style.border = "solid red 2px";
+				elm.style.display = "block";
+				elm.style.textAlign = "center";
+				elm.innerHTML = "WebGL context was lost!";
+				document.body.prepend(elm)
+			}
+	,
 	}, [Shader, Program, Texture, Renderer]);
 const gl = context[GLNAME];
 const floatRenderExtension = gl.getExtension("EXT_color_buffer_float");
