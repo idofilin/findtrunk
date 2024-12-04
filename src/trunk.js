@@ -33,7 +33,8 @@ const context = new Context(canvas, {
 				elm.style.display = "block";
 				elm.style.textAlign = "center";
 				elm.innerHTML = "WebGL context was lost!";
-				document.body.prepend(elm)
+				canvas.before(elm);
+				canvas.after(elm.cloneNode(true));
 			}
 	,
 	}, [Shader, Program, Texture, Renderer]);
