@@ -71,6 +71,27 @@ function calcStats(data, stride = 1) {
 	};
 }
 
+
+function calcSlices (data, delta, stride = 1) {
+	let datasize = data.length;
+	let datalen = Math.floor(datasize/stride);
+	let minval = data[stride - 1];
+	let currval;
+	let elementindex = -1;
+	for (let i = (stride - 1); i < datasize; i+=stride) {
+		elementindex++;
+		currval = ;
+		if (-minval)
+	}
+	 
+
+
+	return slices; 
+}
+
+
+
+
 const cloudFilenames = [
 "FSYL1.asc",
 "FSYL2.asc",
