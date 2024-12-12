@@ -72,20 +72,30 @@ function calcStats(data, stride = 1) {
 }
 
 
-function calcSlices (data, delta, stride = 1) {
+function calcSlices (data, delta, stride = 1, offset = stride - 1) {
 	let datasize = data.length;
 	let datalen = Math.floor(datasize/stride);
-	let minval = data[stride - 1];
-	let currval;
-	let elementindex = -1;
-	for (let i = (stride - 1); i < datasize; i+=stride) {
-		elementindex++;
-		currval = ;
-		if (-minval)
+	let startindex = offset,
+		minval = data[startindex],
+		currval;
+	let slices = [];
+	for (let i = offset; i < datasize; i+=stride) {
+		currval = data[i];
+		if ( (currval-minval) <= delta ) 
+			continue; 
+		let theslice = {
+			min: minval,
+			max: currval,
+			mid: (currval+minval)/2,
+			start: (startindex - offset),
+			end: (i + stride - 1 - offset),
+			get startelement(){return (this.start/stride)},
+			get endelement(){return ((this.end+1)/stride-1)},
+		};
+		slices.push(theslice);
+		minval = currval;
+		startindex = i;
 	}
-	 
-
-
 	return slices; 
 }
 
@@ -161,4 +171,4 @@ const cloudFilenames = [
 "PSYLB15.asc",
 ];
 
-export { load , transform, calcStats, cloudFilenames };
+export { load , transform, calcStats, calcSlices, cloudFilenames };

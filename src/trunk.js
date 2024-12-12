@@ -20,7 +20,7 @@ import { Texture } from "./kangas.js/texture.js"
 import * as Transform from "./kangas.js/transforms.js"
 import { Renderer } from "./kangas.js/renderer.js"
 import { batchLoad, ProgressDisplay } from "./kangas.js/load.js"
-import { load as loadCloud, transform as calcTransMat, calcStats, cloudFilenames as cloudList } from "./pointcloud.js"
+import { load as loadCloud, transform as calcTransMat, calcStats, calcSlices, cloudFilenames as cloudList } from "./pointcloud.js"
 
 
 const canvas = document.querySelector('#app-canvas');
@@ -48,7 +48,7 @@ const sizeof = Transform.sizeof;
 
 const renderer = new context.Renderer({indexBytesize: sizeof.uint32});
 
-const strideSpeedup = 10;
+const strideSpeedup = 4;
 
 window.addEventListener("DOMContentLoaded", setupApp, false);
 
@@ -109,23 +109,28 @@ async function loadShaderPrograms(progress) {
 	return { points: simpleprog , bill: billboardprog, cluster: clusterprog , geomcalc: geometryprog, tls: tlsprog} ;
 }
 
-let cloudMeans, cloudSize, cloudMaxes, cloudMins, cloudMids;
+let cloudMeans, cloudSize, cloudMaxes, cloudMins, cloudMids, cloudSlices;
 let initialScaler = null;
 const zScaler = 7.0;
-let deltaZ = null;
+let sliceIndex = 0, numSlices = 0;
 let transMat = null;
 const fbosize = 128;
 let offscreenFBO = null, offscreenTex = Array(2);
 let shaders;
 let cleanupIsSet = false;
+let deltaZ = 0;
 function initRendering (cloud, progs) {
 
 	cloudMeans = cloud.mean;
 	cloudSize = cloud.size;
 	cloudMins = cloud.min;
 	cloudMaxes = cloud.max;
+	cloudSlices = calcSlices(cloud.data, 0.1, 3);
+	numSlices = cloudSlices.length;
+	sliceIndex = 0;
 	cloudMids = cloudMaxes.map((x,i)=>(x+cloudMins[i])/2);
-	deltaZ = cloudMins[2];
+	deltaZ = cloudSlices[0].mid
+	//let zScaler = 1.99/(cloudSlices[0].max - cloudSlices[0].min);
 	initialScaler = 1.0/Math.max(cloudMaxes[0]-cloudMids[0], cloudMaxes[1]-cloudMids[1]);
 	transMat = calcTransMat( [ cloudMids[0], cloudMids[1], deltaZ ], initialScaler, zScaler);
 
@@ -228,6 +233,9 @@ function clusteringScene(timestamp) {
 	let fbo;
 	const mvpMat = transMat;
 	let prog;
+	const slice = cloudSlices[sliceIndex];
+	const sliceSize = slice.endelement - slice.startelement;
+	const sliceByteoffset = slice.startelement*offsets.cloudindices.bytesize;
 	
 	if (iterCount == 0) {
 		fboIndex = 0;
@@ -241,7 +249,7 @@ function clusteringScene(timestamp) {
 		gl.uniform1f(prog.fixedcolorFactor, 0.0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 		bindAttributePointer(prog.posCoord, offsets.cloud, offsets.cloud.posCoord)		
-		gl.drawElements(gl.POINTS, cloudSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+		gl.drawElements(gl.POINTS, sliceSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset + sliceByteoffset);
 	}
 
 	prog = shaders.cluster;
@@ -273,7 +281,7 @@ function clusteringScene(timestamp) {
 	gl.uniform1f(prog.fixedcolorFactor, 1.0);
 	bindAttributePointer(prog.posCoord, 
 		offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
-	gl.drawElements(gl.POINTS, cloudSize/strideSpeedup, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+	gl.drawElements(gl.POINTS, Math.floor(sliceSize/strideSpeedup), gl.UNSIGNED_INT, offsets.cloudindices.byteoffset + Math.floor(slice.startelement/strideSpeedup)*sizeof.uint32);
 	if (iterCount < fbosize) 
 		renderer.animate(clusteringScene);
 	else if (!geometryStage) {
@@ -320,6 +328,7 @@ function calcInitialClusters () {
 		clusterCounter++;
 		cloudCrossSections.push({
 			idValue: cid,
+			slice: sliceIndex,
 			deltaz: deltaZ,
 			xrange: xRange, 
 			yrange: yRange, 
@@ -330,8 +339,8 @@ function calcInitialClusters () {
 				(cloudMaxes[1]-cloudMids[1])*(yRange[1]-yRange[0])),
 		});
 	}
-	deltaZ+=0.1;
-	if (deltaZ > cloudMaxes[2]) {
+	sliceIndex++;
+	if (sliceIndex >= numSlices) {
 		console.log("Total number of clusters: " + cloudCrossSections.length);
 		crossSectIndex = 0;
 		trunkData = [];
@@ -339,6 +348,7 @@ function calcInitialClusters () {
 		perClusterAnalysis();
 		return;
 	} else {
+		deltaZ = cloudSlices[sliceIndex].mid;
 		transMat = calcTransMat([cloudMids[0], cloudMids[1], deltaZ], initialScaler, zScaler);
 		iterCount = 0;
 		renderer.animate(clusteringScene);
@@ -361,6 +371,7 @@ function perClusterAnalysis() {
 	const cSect = cloudCrossSections[crossSectIndex];
 
 	deltaZ = cSect.deltaz;
+	sliceIndex = cSect.slice;
 	let centerX = cloudMids[0] + cSect.center[0]/initialScaler; 
 	let centerY = cloudMids[1] + cSect.center[1]/initialScaler; 
 	//console.log(`${cSect.numClusters} cluster(s), ${cloudMids[0]}  --> ${centerX}, ${cloudMids[1]} --> ${centerY}`);
@@ -375,6 +386,9 @@ function geometryScene(timestamp) {
 	const mvpMat = transMat;
 	let fbo;
 	let prog;
+	const slice = cloudSlices[sliceIndex];
+	const sliceSize = Math.floor((slice.endelement - slice.startelement)/strideSpeedup);
+	const sliceByteoffset = Math.floor(slice.startelement/strideSpeedup)*offsets.cloudindices.bytesize;
 
 	bindfbo(0);
 	bindprog(shaders.points);
@@ -384,7 +398,7 @@ function geometryScene(timestamp) {
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	bindAttributePointer(prog.posCoord, 
 		offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
-	gl.drawElements(gl.POINTS, cloudSize/strideSpeedup, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+	gl.drawElements(gl.POINTS, sliceSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset + sliceByteoffset);
 
 	bindfbo(1);
 	bindprog(shaders.cluster);
@@ -416,7 +430,7 @@ function geometryScene(timestamp) {
 		gl.uniform1f(prog.fixedcolorFactor, 1.0);
 		bindAttributePointer(prog.posCoord, 
 			offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
-		gl.drawElements(gl.POINTS, cloudSize/strideSpeedup, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+		gl.drawElements(gl.POINTS, sliceSize, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset + sliceByteoffset);
 	}
 
 	gl.flush();
@@ -540,7 +554,7 @@ function trunkScene(timestamp) {
 	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 	bindAttributePointer(program.posCoord, 
 		offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
-	gl.drawElements(gl.POINTS, cloudSize/strideSpeedup, gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
+	gl.drawElements(gl.POINTS, Math.floor(cloudSize/strideSpeedup), gl.UNSIGNED_INT, offsets.cloudindices.byteoffset);
 
 	program = shaders.points;
 	gl.useProgram(program[GLNAME]);
