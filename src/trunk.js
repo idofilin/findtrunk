@@ -48,7 +48,7 @@ const sizeof = Transform.sizeof;
 
 const renderer = new context.Renderer({indexBytesize: sizeof.uint32});
 
-const strideSpeedup = 4;
+const strideSpeedup = 1;
 
 window.addEventListener("DOMContentLoaded", setupApp, false);
 
@@ -125,7 +125,7 @@ function initRendering (cloud, progs) {
 	cloudSize = cloud.size;
 	cloudMins = cloud.min;
 	cloudMaxes = cloud.max;
-	cloudSlices = calcSlices(cloud.data, 0.1, 3);
+	cloudSlices = calcSlices(cloud.data, 1.0/zScaler, 3);
 	numSlices = cloudSlices.length;
 	sliceIndex = 0;
 	cloudMids = cloudMaxes.map((x,i)=>(x+cloudMins[i])/2);
@@ -426,7 +426,7 @@ function geometryScene(timestamp) {
 		gl.drawElements(gl.TRIANGLES, offsets.billboardindices.data.length, gl.UNSIGNED_INT, offsets.billboardindices.byteoffset);
 		
 		bindprog(shaders.points);
-		gl.uniform1f(prog.pointSize, 2.0);
+		gl.uniform1f(prog.pointSize, 1.0);
 		gl.uniform1f(prog.fixedcolorFactor, 1.0);
 		bindAttributePointer(prog.posCoord, 
 			offsets.cloud, offsets.cloud.posCoord, strideSpeedup);
@@ -528,7 +528,7 @@ function drawTrunk() {
 	let program=shaders.points;
 	gl.useProgram(program[GLNAME]);
 	gl.uniform1f(program.fixedcolorFactor, 1.0);
-	gl.uniform1f(program.pointSize, 3.0);
+	gl.uniform1f(program.pointSize, 1.0);
 
 	resetTrunkSceneMat();
 
