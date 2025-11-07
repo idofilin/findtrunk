@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2024 Ido Filin. 
+Copyright (C) 2024-2025 Ido Filin. 
 
 This JavaScript code is free software; you can redistribute it
 and/or modify it under the terms of the GNU General Public
@@ -45,6 +45,7 @@ const instructions = document.querySelector('#instructions');
 
 const twopi = Transform.twopi;
 const sizeof = Transform.sizeof;
+const restart_index = 2**32 - 1;
 
 const renderer = new context.Renderer({indexBytesize: sizeof.uint32});
 
@@ -469,7 +470,8 @@ let trunkSceneZoomFactor, trunkSceneOffset;
 function drawTrunk() {
 	let index = 0, 
 		trunkCoords = [],
-		ringsCoords = [];
+		ringsCoords = [],
+		ringsInds = [];
 	while (index < trunkData.length) {
 		const cSect = trunkData[index];
 		let centerX = cloudMids[0] 
@@ -487,6 +489,8 @@ function drawTrunk() {
 				circleCoords.map( (x,i)=>
 					(i%3===0) && (radius*x+centerX) || (i%3===1) && (radius*x+centerY) || cSect.deltaz )
 			));
+			ringsInds.push(...(Uint32Array.from({length: numCircleCoords}, (v,i)=>index*numCircleCoords+i)));
+			ringsInds.push(restart_index);
 		}
 		index++;
 	}
@@ -507,7 +511,8 @@ function drawTrunk() {
 	});
 	renderer.addVertexData("ringsindices", {
 		buffertype:"index",
-		data: Uint32Array.from({length: ringsCoords.length/3}, (v,i)=>i),
+		//data: Uint32Array.from({length: ringsCoords.length/3}, (v,i)=>i),
+		data: Uint32Array.from(ringsInds),
 		bytesize: sizeof.uint32,
 	});
 
@@ -568,7 +573,7 @@ function trunkScene(timestamp) {
 	gl.uniform3f(program.fixedColor, 1.0, 1.0, 0.0 );
 	bindAttributePointer(program.posCoord, 
 		offsets.rings, offsets.rings.posCoord);
-	gl.drawElements(gl.LINE_STRIP, offsets.ringsindices.data.length, gl.UNSIGNED_INT, offsets.ringsindices.byteoffset);
+	gl.drawElements(gl.LINE_LOOP, offsets.ringsindices.data.length, gl.UNSIGNED_INT, offsets.ringsindices.byteoffset);
 
 	renderer.animate(trunkScene);
 }
